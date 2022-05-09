@@ -1,0 +1,19 @@
+{
+  "name": "language",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "tsc && node dist/index.js",
+    "buildold": "pegjs -o parser/parser.js grammar/grammar.pegjs && tsc",
+    "build": "peggy -o parser/parser.js grammar/grammar.peggy && tsc"
+  },
+  "author": "Luca",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^17.0.16",
+    "peggy": "^1.2.0",
+    "typescript": "^4.5.5"
+  }
+}
