@@ -1,6 +1,7 @@
 {
 	// Global Initializer
     var sets = []
+    var types = [] // holds type data
     
     function makeid(length) {
    		var result           = '';
@@ -33,6 +34,10 @@ start
             c++
         }
         
+        for(var t of types) {
+        	out += t + "\n"
+        }
+        
         out = out + "\n\n" + ff
         
         return out
@@ -41,7 +46,65 @@ start
 
 top
 	= definition
+    / typedef
     / extension
+
+typedef
+	= "type" _ "::" _ tname:Name _ fields:(_ "|" _ Name _ ("?" / ("=" _ expr)) _ )+ _ {
+    	// Type Definition
+        var type = ""
+        
+        // create constructor (wrapper)
+        type += "value_t " + tname.value + "Wrapper("
+        
+        var fieldNames = "\tchar **fields = malloc(sizeof(char *) * " + fields.length + ");\n"
+        var assignments = "\tvalue_t *values = malloc(sizeof(value_t) * " + fields.length + ");\n"
+        var count = 0
+        for(var f of fields) {
+        	// field names
+            fieldNames += "\tfields[" + count + "] = " + '"' + f[3].value + '";\n'
+        
+        	// initializers
+        	if(f[5][0] == "?") {
+            	type += "value_t " + f[3].value + ", "
+                assignments += "\tvalues[" + count + "] = " + f[3].value + ";\n"
+            } else if(f[5][0] == "=") {
+            	//initializers += "\tvalue_t " + f[3].value + " = " + f[5][2] + ";\n"
+            	assignments += "\tvalues[" + count + "] = " + f[5][2] + ";\n"
+            }
+            
+            count++
+        }
+        type = type.slice(0, -2)
+        type += ") {\n"
+        type += fieldNames + "\n"
+        type += assignments + "\n"
+        
+        type += "\tvalue_t temp = Class(" + '"' + tname.value + '"' +", " + (tname.value.length + 1) + ", " + fields.length + ", fields, values);\n"
+        type += "\treturn temp;\n"
+        
+        type += "}\n"
+        
+        var con = "value_t " + tname.value + "(value_t *args, unsigned int size) {\n"
+        con += "\treturn " + tname.value + "Wrapper("
+        
+        var c = 0
+        for(var f of fields) {
+        	if(f[5][0] == "?") {
+            	con += "args[" + c + "], "
+                c++
+            }
+        }
+        con = con.slice(0, -2)
+        
+        con += ");\n"
+        con += "}\n"
+        
+        type += con
+        types.push(type)
+        
+        return ""
+    }
 
 extension
 	= branch:(_ Name _ op _ definition) {
@@ -177,7 +240,7 @@ definitionArgs
 setexpr
 	= "{" _ vars:("?"? Name _)+ _ "|" _ inits:("(" _ Name _ op _ expr _ ")" _)+ _ "|" _ ops:("(" _ operation _ ")"_ )+ _ "|" _ result:expr _ "}" {
     	
-        var wrappedIter = ""
+        var wrappedIter = makeid(8)
         var variableNames = []
         for(var v of vars) {
         	if(v[0] != undefined) {
@@ -256,6 +319,7 @@ defexpr
 expr
 	= call
     / index
+    / field
     / branch:("(" operation ")") {return branch[1]}
     / setexpr
     / branch:string {
@@ -282,6 +346,11 @@ expr
             return 'Atom("' + branch.value + '",' + branch.value.length + ")"
       	}
 	/ branch:list {return branch}
+
+field
+	= name:Name ":" field:atom {
+    	return "op_colon(Atom(" + '"' + field.value + '", ' + (field.value.length + 0) + '), ' + name.value + ")"
+    }
 
 listsplit
 	= "[" _ first:Name _ other:(_ "|" _ Name)+ _ "]" {

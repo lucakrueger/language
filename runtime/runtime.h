@@ -44,7 +44,8 @@ typedef enum {
     NUMBER,
     ATOM,
     LIST,
-    ANY
+    ANY,
+    CLASS
 } type_e;
 
 static const char * const typeNames[] = {
@@ -52,7 +53,8 @@ static const char * const typeNames[] = {
     [NUMBER] = "number",
     [ATOM] = "atom",
     [LIST] = "list",
-    [ANY] = "any"
+    [ANY] = "any",
+    [CLASS] = "class"
 };
 
 typedef struct {
@@ -64,6 +66,8 @@ typedef struct {
     value_t *values;
     unsigned int size;
 } args_t; // args type, used for comparings arguments
+
+typedef value_t (*funPtr)(value_t *, unsigned int);
 
 #define createArgs(values, size) ((args_t){values, size})
 
@@ -135,6 +139,7 @@ typedef struct {
 #define ListLeg(values, size) (((value_t){LIST, &(list_t){values, size}}))
 #define len(ls) (((list_t*)ls.data)->size)
 #define listIndex(ls, index) (((list_t*)ls.data)->values[index])
+#define setList(ls, index, value) ((*(list_t *)(value.data)).values[index] = value)
 
 value_t List(value_t values[], unsigned int size) {
     value_t *temp = malloc(sizeof(value_t));
@@ -178,8 +183,6 @@ typedef struct {
     int value;
 } any_t; // any type
 
-#define AnyLeg() ((value_t){ANY, &(any_t){1}})
-
 value_t Any() {
     value_t *temp = malloc(sizeof(value_t));
     temp->type = ANY;
@@ -187,6 +190,65 @@ value_t Any() {
     tempData->value = 0;
     temp->data = tempData;
     return *temp;
+}
+
+#define AnyLeg() ((value_t){ANY, &(any_t){1}})
+
+typedef struct {
+    char *op;
+    unsigned int oplen;
+    funPtr fun; // pointer to overload function
+} overload_t;
+
+overload_t NewOverload(char *op, unsigned int oplen, funPtr fun) {
+    overload_t *temp = malloc(sizeof(overload_t *));
+    temp->op = op;
+    temp->oplen = oplen;
+    temp->fun = fun;
+    return *temp;
+}
+
+typedef struct {
+	char *name;
+	unsigned int namelen;
+    unsigned int size;
+	char **fields;
+	value_t *values;
+    overload_t *overloads;
+} class_t;
+
+#define getClass(value) (*(class_t *)(value.data))
+
+value_t Class(char *name, unsigned int namelen, unsigned int size, char **fields, value_t *values/*, overload_t *overloads*/) {
+	value_t *class = malloc(sizeof(value_t)); // allocate new value_t
+    class->type = CLASS;
+
+	// allocate new class_t
+	class_t *data = malloc(sizeof(class_t));
+	data->name = name;
+	data->namelen = namelen;
+    data->size = size;
+	data->fields = fields;
+	data->values = values;
+    //data->overloads = overloads;
+
+	class->data = data; // assign new data (class_t)
+
+	return *class;
+}
+
+value_t getField(value_t class, char *name) {
+    // go over fields
+    // check equality
+    // return value
+    // TODO: Implement hashing later
+    for(int i = 0; i < getClass(class).size; i++) {
+        if(getClass(class).fields[i] == name) {
+            // field found
+            return getClass(class).values[i];
+        }
+    }
+    return Atom("none", 5);
 }
 
 #define None() (Atom("none", 5))
@@ -663,6 +725,24 @@ value_t op_slash(value_t b, value_t a) {
 //#define op_star(b, a) (Number(getNumber(a).value * getNumber(b).value))
 //#define op_plus(b, a) (Number(getNumber(a).value + getNumber(b).value))
 //#define op_minus(b, a) (Number(getNumber(a).value - getNumber(b).value))
+value_t op_colon(value_t b, value_t a) {
+    switch(a.type) {
+        case CLASS:
+        {
+            return getField(a, getString(b).value);
+        }
+        case LIST:
+        {
+            switch(b.type) {
+                case NUMBER:
+                {
+                    return listIndex(a, (int)getNumber(b).value);
+                }
+            }
+        }
+    }
+    return None();
+}
 value_t op_eq(value_t b, value_t a) {
     if(compareValues(a, b) == true) return Atom("true", 5);
     return Atom("false", 6);
@@ -847,6 +927,20 @@ void dtprint(value_t value) {
         case ANY:
             printf("any");
             break;
+        case CLASS:
+        {
+            printf("%s", getClass(value).name);
+            printf(" {\n");
+
+            for(int i = 0; i < getClass(value).size; i++) {
+                printf("\t%s: ", getClass(value).fields[i]);
+                dtprint(getClass(value).values[i]);
+                printf("\n");
+            }
+
+            printf("}\n");
+            break;
+        }
     }
 }
 
