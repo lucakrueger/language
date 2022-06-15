@@ -11,7 +11,7 @@ type :: Mail | name?
 
 getMail | (acc), first : split(acc, "@") , second : split((first : 1), ".") = Mail((first : 0), (second : 0), (second : 1))
 
-match | (str, model) , matches : { elem s m ?i | (elem <- model) (s = str) (m = model) | (i % 2 = 0) | split(s, elem) } = matches
+match | (str, model) , matches : { el s m ?i | (el <- model) (s = str) (m = model) | (i % 2 = 0) | split(s, el) } = matches
 
 getMailNew | (acc) = match(acc, [:name, "@", :addr, ".", :ext])
 

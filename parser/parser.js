@@ -380,16 +380,32 @@ function peg$parse(input, options) {
           }
           
           var out = ""
-          var newSets = []
-          var c = 0
+          /*var newSets = []
+          var c = 1
           for(var s of sets) {
           	/*if((c + 1) % 2 == 0) {
               	//newSets.push(s)
                   out += s + "\n"
               }*/
-              out += s + "\n"
-              c++
+              //out += s + "\n"
+              //c++
+          //}*/*/
+          
+          for(var i = 0; i < funs.length; i++) {
+          	out += "value_t " + funs[i] +"(value_t values[], unsigned int size);\n"
           }
+          out += "\n"
+          
+          var setsout = ""
+          for(var c = 0; c < sets.length; c++) {
+          	/*if(c % 2 == 0) {
+              	continue
+              }*/
+          	setsout += sets[c] + "\n"
+              out += setsNames[c] + ";\n"
+          }
+          
+          out += "\n" + setsout + "\n"
           
           for(var t of types) {
           	out += t + "\n"
@@ -490,6 +506,8 @@ function peg$parse(input, options) {
               str += "\targs_t args" + counter + " = createArgs(values" + counter +", " + cse[2].values.length + ");\n"
               counter++
           }
+          
+          funs.push(branch[1].value)
           
           // check cases
           var operationName = "if"
@@ -606,6 +624,7 @@ function peg$parse(input, options) {
           // add to sets
           var temp = ""
           var funcName = "set_" + makeid(6)
+          //setsNames.push(funcName)
           
           // build declaration
           temp += "value_t " + funcName + "(value_t iteratorList, "
@@ -614,6 +633,7 @@ function peg$parse(input, options) {
           }
           temp = temp.slice(0, -1)
           temp += ") {\n"
+          setsNames.push(temp.slice(0, -3))
           
           // initialize
           temp += "\tvalue_t elem = None();\n"
@@ -4780,7 +4800,9 @@ function peg$parse(input, options) {
 
   	// Global Initializer
       var sets = []
+      var setsNames = []
       var types = [] // holds type data
+      var funs = []
       
       function makeid(length) {
      		var result           = '';
