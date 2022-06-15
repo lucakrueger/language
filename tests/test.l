@@ -1,9 +1,9 @@
 @use std.l
 
 @entry
-@deprecated
-@custom ("h")
-test | () = a_custom
+test | () = addls([3, 5], [4, 2])
 
-@ :: custom | () = print(:ok)
-            | (n) = print(:err)
+af | (n) = n + 2
+bf | (n) = n * 3
+
+addls | (a, b) = [{af + bf}(2), {af + bf}(3)]

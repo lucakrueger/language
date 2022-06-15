@@ -412,6 +412,7 @@ expr
     / index
     / field
     / branch:("(" operation ")") {return branch[1]}
+    / commonFac
     / setexpr
     / branch:string {
     		return 'String("' + branch.value + '",' + branch.value.length + ")"
@@ -510,7 +511,8 @@ operation
         
         return str
     }
-    / "{" _ branch:(expr _ (_ op _ expr)+) _ "}" args:("(" _ (_ expr _ ","?)* _ ")") {
+commonFac
+    = "{" _ branch:(expr _ (_ op _ expr)+) _ "}" args:("(" _ (_ expr _ ","?)* _ ")") {
     	// common factor -> call
     	var values = [branch[0]]
         var ops = []
@@ -525,14 +527,17 @@ operation
         // op_any(b, a)!!!!
         
         // process args
-        var str2 = "("
+        var str2 = "((value_t[]){"
+        var argCounter = args[2].length
         for(var elem of args[2]) {
         	str2 += elem[1]
             if(elem[3] != null) {
             	str2 += args[3]
             }
+            str2 += ", "
         }
-        str2 += ")"
+        str2 = str2.slice(0, -2)
+        str2 += "}, " + argCounter + ")"
         
         values = values.reverse()
         ops = ops.reverse()
