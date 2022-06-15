@@ -2,6 +2,24 @@
 #define BUILTIN_H_
 
 #include "runtime.h"
+#include <pthread.h>
+
+value_t threads(value_t *args, unsigned int size) {
+    /*
+        threads(...list *fun): list
+    */
+    if(size == 0) {
+        printf("Runtime error: 'threads' requires at least one parameter");
+        return Atom("none", 5);
+    }
+
+    int i;
+    pthread_t tid;
+    for(i = 0; i < size; i++) {
+        
+    }
+    
+}
 
 /* IO */
 value_t rprint(value_t *args, unsigned int size) {

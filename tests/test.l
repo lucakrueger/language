@@ -1,2 +1,2 @@
 @entry
-test | () = testuse()
+test | () = !!printf("Hello World", "ok")

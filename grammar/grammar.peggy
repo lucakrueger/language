@@ -414,6 +414,7 @@ expr
     / branch:("(" operation ")") {return branch[1]}
     / commonFac
     / setexpr
+    / unsafe
     / branch:string {
     		return 'String("' + branch.value + '",' + branch.value.length + ")"
     		/*return '(value_t){STRING, &(string_t){"'+ 
@@ -455,6 +456,24 @@ listsplit
     	return {ident: "listsplit", names: names} 
     }
 
+unsafe
+    = "!&" "(" _ ex:expr _ ")"{
+        return "&" + ex
+    }
+    / "!!" branch:(Name "(" ((operation / expr) _ ","? _)* ")") {
+        var str = branch[0].value + "("
+    	
+        for(var elem of branch[2]) {
+        	str += elem[0]
+            if(elem[2] != null) {
+            	str += elem[2]
+            }
+        }
+        
+        str += ")"
+    	return str
+    }
+
 exprdown
 	= call
     / branch:("(" operation ")") {return branch[0]}
@@ -464,7 +483,7 @@ call
 	= branch:(Name "(" ((operation / expr) _ ","? _)* ")") {
     	var str = branch[0].value + "((value_t[]){"
     	
-        for(var elem of branch[2]) {
+        for(var elem of branch[2]) {
         	str += elem[0]
             if(elem[2] != null) {
             	str += elem[2]
