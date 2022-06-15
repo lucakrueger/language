@@ -4,6 +4,12 @@
     var setsNames = []
     var types = [] // holds type data
     var funs = []
+    var uses = []
+    
+    var main = ""
+    var lookForEntry = false
+    
+    var attributes = []
     
     function makeid(length) {
    		var result           = '';
@@ -43,9 +49,9 @@ start
         
         var setsout = ""
         for(var c = 0; c < sets.length; c++) {
-        	/*if(c % 2 == 0) {
+        	if(c % 2 == 0) {
             	continue
-            }*/
+            }
         	setsout += sets[c] + "\n"
             out += setsNames[c] + ";\n"
         }
@@ -57,8 +63,16 @@ start
         }
         
         out = out + "\n\n" + ff
+        if(main != "") {
+        	out += "dmain(" + main + ")"
+        }
         
-        return out
+        return {
+        	src: out,
+            uses: uses,
+            attributes
+        }
+        //return out
         //return ff
     }
 
@@ -66,6 +80,35 @@ top
 	= definition
     / typedef
     / extension
+    / attributes
+
+attributes
+	= "@use " chars:char* _ {
+    	uses.push(chars.join("")) // Ignore use, recognized by preprocessor
+    	return ""
+    }
+    / "@" chars:Name _ "(" _ args:(_ expr _)* _ ")" _ {
+    	var a = []
+        for(var ar of args) {
+        	a.push(ar[1])
+        }
+    	attributes.push({
+        	attr: chars.value,
+            args: a
+        })
+    	return ""
+    }
+    / "@" chars:Name _ {
+    	// attribute without args
+        attributes.push({
+        	attr: chars.value,
+            args: []
+        })
+        return ""
+    }
+    / "@ :: " def:definition {
+    	return def
+    }
 
 typedef
 	= "type" _ "::" _ tname:Name _ fields:(_ "|" _ Name _ ("?" / ("=" _ expr)) _ )+ _ {
@@ -164,6 +207,32 @@ definition
         }
         
         funs.push(branch[1].value)
+        /*if(lookForEntry == true) {
+        	main = branch[1].value
+        }*/
+        // go over attributes, add them
+        for(var a of attributes) {
+        	switch(a.attr) {
+            	case "entry":
+                	main = branch[1].value
+                    break
+                case "deprecated":
+                	str += '\tprintf("%s", "Warning, function '+ "'" + branch[1].value + "'" +' is deprecated\\n");\n'
+                	break
+               	default:
+                	str += "\tvalue_t a_" + a.attr + " = " + a.attr + "((value_t[]){"
+                    for(var attrarg of a.args) {
+                    	str += attrarg + ", "
+                    }
+                    if(a.args.length != 0) {
+                        str = str.slice(0, -2)
+                    }
+                    str += "}, " + a.args.length + ");\n"
+                    break
+            }
+        }
+        
+        attributes = []
         
         // check cases
         var operationName = "if"
